@@ -7,7 +7,7 @@ the contents of the downloadable text file with all of your loan data.
 
 ##Example Usage
 
-```
+```python
 from nslds import NSLDS
 
 borrower = NSLDS(borrower_ssn='123456789',
