@@ -18,5 +18,5 @@ borrower = NSLDS(borrower_ssn='123456789',
 loan_data = borrower.get_loan_data()
 ```
 
-This will store the contents of the downloadable textfile in loan_data, which
+This will store the contents of the downloadable textfile in `loan_data`, which
 can then be parsed and processed further.
