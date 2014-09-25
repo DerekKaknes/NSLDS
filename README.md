@@ -1,5 +1,5 @@
 #Installation
-Use '''pip install NSLDS'''
+Use `pip install NSLDS`
 
 #Usage
 Provide NSLDS with your login credentials for the NSLDS site and it will return
