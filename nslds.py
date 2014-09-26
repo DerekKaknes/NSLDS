@@ -11,6 +11,8 @@ class NSLDS():
     login_action = '/nslds_SA/SaFinLogin.do'
     loan_download = '/nslds_SA/SaFinShowMyDataConfirm.do'
     download_confirm = '/nslds_SA/MyData/MyStudentData.do'
+    system_error_message = 'A system error has occurred'
+    file_source ='File Source:U.S. DEPARTMENT OF EDUCATION, NATIONAL STUDENT LOAN DATA SYSTEM (NSLDS)'
 
     def __init__(self,**kwargs):
         self.borrower_ssn = kwargs.get('borrower_ssn')
@@ -33,10 +35,14 @@ class NSLDS():
         input_html_elements = login_tree.findall('.//input')
         for input_element in input_html_elements:
             try:
-                if input_element.attrib['name']=='sessionId':
-                    self.session_id=input_element.attrib['value']
+                name_attr = input_element.attrib['name']
             except KeyError:
                 pass
+            else:
+                if name_attr == 'sessionId':
+                    self.session_id=input_element.attrib['value']
+        if not self.session_id:
+            raise Exception('Unable to find SessionId')
 
         # Get PIN selection grid
         grid={}
@@ -44,11 +50,12 @@ class NSLDS():
         for select_element in select_html_elements:
             select_name = select_element.attrib['name']+'h'
             grid[select_name]={}
-            # Each Select element has 10 options (0-9)
+            # Each Select element has 10 options (0-9) that map to PIN selection
             options = select_element.findall('option')
             for option in options:
                 val = option.attrib['value']
                 pin_num = option.text
+                # Creates dict to return grid value for a given real PIN input
                 grid[select_name][pin_num]=int(val)
 
         # Generate parameter list for login POST
@@ -58,6 +65,7 @@ class NSLDS():
         payload['borrowerDob'] = self.borrower_dob
         payload['sessionId'] = self.session_id
 
+        # Uses selection grid to assign correct values for real PIN input
         payload['yin1h']=grid['yin1h'][self.pin[0]]
         payload['yin2h']=grid['yin2h'][self.pin[1]]
         payload['yin3h']=grid['yin3h'][self.pin[2]]
@@ -71,13 +79,24 @@ class NSLDS():
         errors = error_tree.findall('.//li')
         if errors:
             print 'Encountered following errors while attempting login:'
-            print errors
+            for error in errors:
+                print error.text
+            raise Exception('Login Credential Error')
 
         # Download the Loan Data
         click_download_response = s.get(NSLDS.host + NSLDS.loan_download)
         confirm_download_response = s.get(NSLDS.host + NSLDS.download_confirm, data={'language':'en'})
 
         loan_data = confirm_download_response.content
+
+        # Check for valid response
+        file_source = loan_data.split('\r')[0]
+        if NSLDS.system_error_message in file_source:
+            raise Exception('NSLDS system error: check your SessionId')
+        elif file_source != NSLDS.file_source:
+            raise Exception('Invalid file source: '+file_source)
+        else:
+            pass
 
         s.close()
         return loan_data
