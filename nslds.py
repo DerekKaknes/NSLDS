@@ -1,5 +1,7 @@
 import requests
 import lxml.etree as et
+from null_parser import Null_Parser
+from json_parser import JSON_Parser
 
 class NSLDS():
 
@@ -20,6 +22,15 @@ class NSLDS():
         self.borrower_dob = kwargs.get('borrower_dob')
         self.pin = kwargs.get('pin')
         self.session_id = None
+
+    def get_parsed_loan_data(self, parser=None):
+        loan_data = self.get_loan_data()
+        parsed_data = self.parse_loan_data(loan_data, parser)
+        return parsed_data
+
+    def parse_loan_data(self, loan_data, parser=Null_Parser()):
+        parsed_data = parser.parse_textfile(loan_data)
+        return parsed_data
 
     def get_loan_data(self):
         #Create Session

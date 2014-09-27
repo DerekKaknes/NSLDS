@@ -20,3 +20,13 @@ loan_data = borrower.get_loan_data()
 
 This will store the contents of the downloadable textfile in `loan_data`, which
 can then be parsed and processed further.
+
+NSLDS package offers two built-in parsers for JSON and XML formats.  To return
+parsed data in the selected format, simply call the `parse_loan_data()` method
+and pass in `loan_data` and the desired parser.  Example:
+```
+from nslds import JSON_Parser
+
+parser = JSON_Parser()
+parsed_data = borrower.parse_loan_data(loan_data, parser)
+```
