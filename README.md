@@ -24,7 +24,7 @@ can then be parsed and processed further.
 NSLDS package offers two built-in parsers for JSON and XML formats.  To return
 parsed data in the selected format, simply call the `parse_loan_data()` method
 and pass in `loan_data` and the desired parser.  Example:
-```
+```python
 from nslds import JSON_Parser
 
 parser = JSON_Parser()
