@@ -9,10 +9,10 @@ class NSLDS():
     host = 'https://www.nslds.ed.gov'
     entry_link = '/nslds_SA/SaPrivacyConfirmation.do'
     accept_link = '/nslds_SA/SaFinPrivacyAccept.do'
-    login_link = '/nslds_SA/SaFinLoginPage.do'
-    login_action = '/nslds_SA/SaFinLogin.do'
-    loan_download = '/nslds_SA/SaFinShowMyDataConfirm.do'
-    download_confirm = '/nslds_SA/MyData/MyStudentData.do'
+    login_link = '/nslds_SA/secure/SaFinLogin.do'
+    login_action = '/nslds_SA/secure/SaFinLogin.do'
+    loan_download = '/nslds_SA/secure/SaFinShowMyDataConfirm.do'
+    download_confirm = '/nslds_SA/secure/MyData/MyStudentData.do'
     system_error_message = 'A system error has occurred'
     file_source ='File Source:U.S. DEPARTMENT OF EDUCATION, NATIONAL STUDENT LOAN DATA SYSTEM (NSLDS)'
 
@@ -21,6 +21,7 @@ class NSLDS():
         self.borrower_name = kwargs.get('borrower_name')
         self.borrower_dob = kwargs.get('borrower_dob')
         self.pin = kwargs.get('pin')
+        self.s = requests.Session()
         self.session_id = None
 
     def get_parsed_loan_data(self, parser=None):
@@ -32,12 +33,9 @@ class NSLDS():
         parsed_data = parser.parse_textfile(loan_data)
         return parsed_data
 
-    def get_loan_data(self):
-        #Create Session
-        s = requests.Session()
-
+    def login(self):
         # Navigate to Login Page
-        login_response = s.get(NSLDS.host + NSLDS.login_link)
+        login_response = self.s.get(NSLDS.host + NSLDS.login_link)
 
         # Parse HTML for login page
         login_tree = et.HTML(login_response.content)
@@ -83,7 +81,7 @@ class NSLDS():
         payload['yin4h']=grid['yin4h'][self.pin[3]]
 
         # POST login credentials
-        post_response = s.post(NSLDS.host + NSLDS.login_action, data=payload)
+        post_response = self.s.post(NSLDS.host + NSLDS.login_action, data=payload)
 
         # Check for login errors
         error_tree = et.HTML(post_response.content)
@@ -93,21 +91,28 @@ class NSLDS():
             for error in errors:
                 print error.text
             raise Exception('Login Credential Error')
+        return True
+
+    def get_loan_data(self):
+
+        # Login with Creds
+        self.login()
 
         # Download the Loan Data
-        click_download_response = s.get(NSLDS.host + NSLDS.loan_download)
-        confirm_download_response = s.get(NSLDS.host + NSLDS.download_confirm, data={'language':'en'})
+        click_download_response = self.s.get(NSLDS.host + NSLDS.loan_download)
+
+        confirm_download_response = self.s.get(NSLDS.host + NSLDS.download_confirm, data={'language':'en'})
 
         loan_data = confirm_download_response.content
 
         # Check for valid response
         file_source = loan_data.split('\r')[0]
         if NSLDS.system_error_message in file_source:
-            raise Exception('NSLDS system error: check your SessionId')
+            raise Exception('NSLDS system error: Your SessionID has Expired')
         elif file_source != NSLDS.file_source:
             raise Exception('Invalid file source: '+file_source)
         else:
             pass
 
-        s.close()
+        self.s.close()
         return loan_data
